@@ -1,0 +1,9 @@
+[package]
+name = "kafka-client"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rdkafka = { version = "0.38.0", features = ["cmake_build"] }
+log = "0.4"
+anyhow = "1.0.99"
