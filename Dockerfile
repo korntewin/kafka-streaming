@@ -33,3 +33,23 @@ RUN useradd -u 10001 -r -m -d /home/app -s /usr/sbin/nologin appuser
 COPY --chown=appuser --from=daemon-builder /app/target/release/publish_daemon /usr/local/bin
 USER appuser
 ENTRYPOINT ["publish_daemon"]
+
+# === Python ===
+FROM python:3.13-bookworm AS python-app
+COPY --from=ghcr.io/astral-sh/uv:0.8.15 /uv /uvx /bin/
+RUN apt-get update && apt-get install -y --no-install-recommends openjdk-17-jre-headless \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+
+COPY pyproject.toml uv.lock ./
+COPY stream-processor/pyproject.toml stream-processor/pyproject.toml
+RUN uv sync --package stream-processor
+
+ENV JAVA_HOME=/usr
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
+# RUN useradd -u 10001 -r -m -d /home/app -s /usr/sbin/nologin appuser
+# USER appuser
+COPY . .
+# RUN uv run --package stream-processor pyspark --packages org.apache.spark:spark-hadoop-cloud_2.13:4.0.0
+ENTRYPOINT ["uv", "run", "--package", "stream-processor", "python3", "stream-processor/main.py"]
