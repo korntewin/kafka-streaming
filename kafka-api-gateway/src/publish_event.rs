@@ -1,6 +1,6 @@
 use crate::{AppState, PublishRequest, PublishResponse};
 use kafka_client::Publisher;
-use log::{info, error};
+use log::{error, info};
 use ntex::http::StatusCode;
 use ntex::web;
 use std::sync::Arc;
@@ -14,12 +14,14 @@ pub async fn publish(
     let value_str = match serde_json::to_string(&body.value) {
         Ok(s) => s,
         Err(e) => {
-            return Ok(web::HttpResponse::BadRequest()
-                .body(format!("invalid JSON value: {e}")));
+            return Ok(web::HttpResponse::BadRequest().body(format!("invalid JSON value: {e}")));
         }
     };
 
-    info!("Publishing message to topic={:?} with key={:?}, value={}", data.topic, key_opt, value_str);
+    info!(
+        "Publishing message to topic={:?} with key={:?}, value={}",
+        data.topic, key_opt, value_str
+    );
     match data
         .publisher
         .publish(key_opt.unwrap_or(""), &value_str, &data.topic)

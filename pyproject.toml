@@ -9,3 +9,17 @@ members = ["stream-processor"]
 [build-system]
 requires = ["uv_build>=0.8.14,<0.9.0"]
 build-backend = "uv_build"
+
+[tool.ruff]
+# Target the newest Python used in the workspace (stream-processor uses 3.13)
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+# E,F,W = flake8 family; I = isort; PL = pylint
+select = ["E", "F", "W", "I", "PL"]
+# Optionally add more rule sets later (e.g. "UP" for pyupgrade, "B" for bugbear)
+ignore = []
+fixable = ["I"]
+unfixable = []
+preview = false
