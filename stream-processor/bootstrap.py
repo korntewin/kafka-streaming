@@ -1,17 +1,16 @@
 from typing import Any
 
-from pyspark.sql import SparkSession
+import config
 from minio import Minio  # type: ignore
 from pymongo import MongoClient
-
+from pyspark.sql import SparkSession
 from utils import (
-    ensure_table,
     build_spark,
     ensure_bucket_exists,
-    get_bucket_name,
     ensure_mongo_collection,
+    ensure_table,
+    get_bucket_name,
 )
-import config
 
 
 def bootstrap() -> SparkSession:
@@ -42,7 +41,8 @@ def bootstrap() -> SparkSession:
         spark,
         config.SILVER_PATH,
         name="silver_reviews",
-        clustering_cols=["group_id", "id"],
+        partition_cols=["minute_timestamp"],
+        zorder_cols=["id"],
         schema=config.RAW_SCHEMA,
     )
 

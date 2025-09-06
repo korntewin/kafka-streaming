@@ -1,8 +1,6 @@
-from delta import *  # type: ignore
-
 import config
 from bootstrap import bootstrap
-from processing import silver, gold, tomongo
+from processing import gold, silver, tomongo
 
 
 def main():  # noqa: D401

@@ -1,8 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-
-from pyspark.sql.types import StructType, StructField, StringType, FloatType, LongType
+from pyspark.sql.types import FloatType, LongType, StringType, StructField, StructType
 
 load_dotenv("../.env")
 
@@ -14,7 +13,7 @@ KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "reviews")
 
 SILVER_PATH = "s3a://kafka/silver/" + KAFKA_TOPIC
 GOLD_PATH = "s3a://kafka/gold/" + KAFKA_TOPIC
-SILVER_CKPT = "s3a://kafka/_checkpoint_silver/" + KAFKA_TOPIC
+SILVER_CKPT = "s3a://kafka/_checkpoint_silver/" + KAFKA_TOPIC + "_v2"
 GOLD_CKPT = "s3a://kafka/_checkpoint_gold/" + KAFKA_TOPIC
 MONGO_CKPT = "s3a://kafka/_checkpoint_mongo/" + KAFKA_TOPIC
 
@@ -38,6 +37,7 @@ RAW_SCHEMA = StructType(
         StructField("score", FloatType(), False),
         StructField("event_timestamp", LongType(), False),
         StructField("ingest_timestamp", LongType(), False),
+        StructField("minute_timestamp", LongType(), False),
     ]
 )
 
@@ -47,6 +47,10 @@ AGGREGATION_SCHEMA = StructType(
         StructField("cumulative_score", FloatType(), False),
         StructField("event_count", LongType(), False),
         StructField("avg_score", FloatType(), False),
+        # first event timestamp in the group
+        StructField("first_event_timestamp", LongType(), False),
+        # last event timestamp in the group
+        StructField("last_event_timestamp", LongType(), False),
         StructField("updated_at", LongType(), False),
     ]
 )
@@ -69,6 +73,9 @@ UI_PORT = int(os.getenv("SPARK_UI_PORT", "4040"))
 SPARK_WORKER_INSTANCES = int(os.getenv("SPARK_WORKER_INSTANCES", "2"))
 SPARK_EVENT_LOG_DIR = os.getenv("SPARK_EVENT_LOG_DIR", "s3a://spark-events")
 SPARK_HISTORY_LOG_DIR = SPARK_EVENT_LOG_DIR
+MAX_OFFSETS_PER_TRIGGER = int(os.getenv("MAX_OFFSETS_PER_TRIGGER", "10000"))
+MAX_FILES_PER_TRIGGER = int(os.getenv("MAX_FILES_PER_TRIGGER", "50"))
+N_GROUP_ID_PARTITIONS = int(os.getenv("N_GROUP_ID_PARTITIONS", "128"))
 
 # MongoDB config
 MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "reviews_db")

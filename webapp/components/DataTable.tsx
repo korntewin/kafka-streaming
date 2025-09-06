@@ -86,8 +86,14 @@ export default function DataTable({ columns }: DataTableProps) {
   const currentLoading = isLazyMode ? isInfiniteLoading : isLoading;
   const currentError = isLazyMode ? infiniteError : error;
   const currentIsError = isLazyMode ? isInfiniteError : isError;
-  const currentData = isLazyMode ? flattenedData : data?.data || [];
+  const rawData = isLazyMode ? flattenedData : data?.data || [];
   const currentTotal = isLazyMode ? totalCount : data?.pagination?.total || 0;
+
+  const currentData = rawData.map((item) => {
+    const lag_seconds =
+      (item.updated_at - item.first_event_timestamp) / 1000;
+    return { ...item, lag_seconds }; 
+  });
 
   if (currentLoading && (!isLazyMode || flattenedData.length === 0)) {
     return (

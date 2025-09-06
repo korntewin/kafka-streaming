@@ -15,6 +15,6 @@ anyhow = "1"
 kafka-client = { path = "../kafka-client" }
 clap = { version = "4", features = ["derive", "env"] }
 rand = "0.8"
-uuid = { version = "1", features = ["v4"] }
+uuid = { version = "1", features = ["v4", "v7"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal", "time"] }
 reqwest = "0.12.23"

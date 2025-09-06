@@ -1,6 +1,6 @@
-from pyspark.sql import SparkSession, DataFrame, functions as F
-
 import config
+from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import functions as F
 
 
 def write_to_mongo(df: DataFrame, epoch_id: int):
@@ -8,6 +8,7 @@ def write_to_mongo(df: DataFrame, epoch_id: int):
 
     (
         df.withColumn("_id", F.col("group_id"))
+        .withColumn("updated_at", F.unix_timestamp(F.current_timestamp()) * 1000)
         .write.format("mongodb")
         .option("database", config.MONGO_DB_NAME)
         .option("collection", config.MONGO_COLLECTION)
@@ -21,15 +22,15 @@ def start_to_mongo_stream(spark: SparkSession) -> None:
         spark.readStream.format("delta")
         .option("readChangeFeed", "true")
         .option("startingVersion", "0")
+        .option("maxOffsetsPerTrigger", str(config.MAX_FILES_PER_TRIGGER))
         .load(str(config.GOLD_PATH))
         .filter("_change_type != 'update_preimage'")
         .drop("_commit_version", "_commit_timestamp", "_change_type")
     )
 
     (
-        gold.writeStream
-        .foreachBatch(write_to_mongo)
+        gold.writeStream.foreachBatch(write_to_mongo)
         .option("checkpointLocation", str(config.MONGO_CKPT))
         .trigger(processingTime=config.TRIGGER_INTERVAL)
-        .start()
+        .start(queryName="gold_to_mongo")
     )

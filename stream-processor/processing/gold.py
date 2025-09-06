@@ -1,45 +1,49 @@
-from pyspark.sql import SparkSession, functions as F, DataFrame
-from delta import *  # type: ignore
-
 import config
+from delta import DeltaTable
+from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import functions as F
 
 
 def upsert_gold(batch_df: DataFrame, batch_id: int):
     spark = batch_df.sparkSession
 
     # Build incremental aggregates per group
-    agg = (
-        batch_df.groupBy("group_id")
-        .agg(
-            F.sum("score").alias("batch_score"),
-            F.count("id").alias("batch_events"),
-        )
-        .withColumn("batch_id", F.lit(batch_id))
+    agg = batch_df.groupBy("group_id").agg(
+        F.sum("score").alias("batch_score"),
+        F.count("*").alias("batch_events"),
+        F.min("event_timestamp").alias("first_event_timestamp"),
+        F.max("event_timestamp").alias("last_event_timestamp"),
     )
 
     gold_tbl = DeltaTable.forPath(spark, str(config.GOLD_PATH))
-    existing = gold_tbl.toDF().select("group_id", "cumulative_score", "event_count")
-    merged = (
-        agg.join(existing, "group_id", "left")
-        .withColumn(
-            "cumulative_score",
-            F.coalesce(F.col("cumulative_score"), F.lit(0.0)) + F.col("batch_score"),
+    (
+        gold_tbl.alias("t")
+        .merge(agg.alias("s"), "t.group_id = s.group_id")
+        .whenMatchedUpdate(
+            set={
+                "cumulative_score": "t.cumulative_score + s.batch_score",
+                "event_count": "t.event_count + s.batch_events",
+                "avg_score": (
+                    "(t.cumulative_score + s.batch_score) / (t.event_count + s.batch_events)"
+                ),
+                "first_event_timestamp": "s.first_event_timestamp",
+                "last_event_timestamp": "s.last_event_timestamp",
+                "updated_at": F.unix_timestamp(F.current_timestamp()) * 1000,
+            }
         )
-        .withColumn(
-            "event_count",
-            F.coalesce(F.col("event_count"), F.lit(0)) + F.col("batch_events"),
+        .whenNotMatchedInsert(
+            values={
+                "group_id": "s.group_id",
+                "cumulative_score": "s.batch_score",
+                "event_count": "s.batch_events",
+                "avg_score": "(s.batch_score / s.batch_events)",
+                "first_event_timestamp": "s.first_event_timestamp",
+                "last_event_timestamp": "s.last_event_timestamp",
+                "updated_at": F.unix_timestamp(F.current_timestamp()) * 1000,
+            }
         )
-        .withColumn(
-            "avg_score",
-            (F.col("cumulative_score") / F.col("event_count")).cast("float"),
-        )
-        .withColumn("updated_at", F.unix_timestamp(F.current_timestamp()))
-        .select("group_id", "cumulative_score", "event_count", "avg_score", "updated_at")
+        .execute()
     )
-
-    gold_tbl.alias("t").merge(
-        merged.alias("s"), "t.group_id = s.group_id"
-    ).whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
 
 
 def start_gold_stream(spark: SparkSession):
@@ -58,7 +62,8 @@ def start_gold_stream(spark: SparkSession):
         silver_cdf.writeStream.format("delta")
         .foreachBatch(upsert_gold)
         .option("checkpointLocation", str(config.GOLD_CKPT))
+        .option("maxOffsetsPerTrigger", str(config.MAX_FILES_PER_TRIGGER))
         .outputMode("update")
         .trigger(processingTime=config.TRIGGER_INTERVAL)
-        .start()
+        .start(queryName="silver_to_gold")
     )

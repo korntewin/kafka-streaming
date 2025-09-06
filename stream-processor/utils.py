@@ -1,12 +1,11 @@
 from typing import Any
 
-from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType
-from delta import *  # type: ignore
+import config
+from delta import DeltaTable, configure_spark_with_delta_pip
 from minio import Minio  # type: ignore
 from pymongo import MongoClient
-
-import config
+from pyspark.sql import SparkSession
+from pyspark.sql.types import StructType
 
 
 def build_spark(instances: int = config.SPARK_WORKER_INSTANCES) -> SparkSession:
@@ -38,7 +37,6 @@ def build_spark(instances: int = config.SPARK_WORKER_INSTANCES) -> SparkSession:
         .config("spark.hadoop.fs.s3a.endpoint", config.AWS_ENDPOINT_URL)
         .config("spark.hadoop.fs.s3a.comitter.name", "directory")
         .config("spark.hadoop.fs.s3a.comitter.magic.enabled", "false")
-        
         # MongoDB
         .config("spark.mongodb.connection.uri", config.MONGO_URI)
     )
@@ -49,11 +47,14 @@ def build_spark(instances: int = config.SPARK_WORKER_INSTANCES) -> SparkSession:
     return spark
 
 
+# ruff: noqa: PLR0913
 def ensure_table(
     spark: SparkSession,
     path: str,
     name: str,
-    clustering_cols: list[str],
+    clustering_cols: list[str] | None = None,
+    partition_cols: list[str] | None = None,
+    zorder_cols: list[str] | None = None,
     enable_cdf: bool = True,
     schema: StructType | None = None,
 ):
@@ -61,21 +62,46 @@ def ensure_table(
 
     Uses a simple empty DataFrame write to create the table with schema & properties
     instead of raw SQL + private APIs for broader compatibility.
+
+    Args:
+        spark: SparkSession instance
+        path: Path to the Delta table
+        name: Table name
+        clustering_cols: Columns to cluster by (for liquid clustering)
+        partition_cols: Columns to partition by (traditional partitioning)
+        zorder_cols: Columns to Z-ORDER by (for optimization)
+        enable_cdf: Enable Change Data Feed
+        schema: Table schema
     """
     if schema is None:
         raise ValueError("Schema required to create table")
 
-    (
-        DeltaTable.createIfNotExists(spark)
-        .tableName(name)
-        .addColumns(schema)
-        .location(str(path))
-        .clusterBy(*clustering_cols)
-        .property("delta.enableChangeDataFeed", "true" if enable_cdf else "false")
+    # Build the table creation command
+    table_builder = (
+        DeltaTable.createIfNotExists(spark).tableName(name).addColumns(schema).location(str(path))
+    )
+
+    # Add clustering columns if specified (liquid clustering)
+    if clustering_cols:
+        table_builder = table_builder.clusterBy(*clustering_cols)
+
+    # Add partition columns if specified (traditional partitioning)
+    if partition_cols:
+        table_builder = table_builder.partitionedBy(*partition_cols)
+
+    # Set table properties
+    table_builder = (
+        table_builder.property("delta.enableChangeDataFeed", "true" if enable_cdf else "false")
         .property("delta.autoOptimize.optimizeWrite", "true")
         .property("delta.autoOptimize.autoCompact", "true")
-        .execute()
     )
+
+    # Execute table creation
+    table_builder.execute()
+
+    # Add Z-ORDER optimization if specified (must be done after table creation)
+    if zorder_cols:
+        spark.sql(f"OPTIMIZE {name} ZORDER BY ({', '.join(zorder_cols)})")  # type: ignore
 
 
 def ensure_bucket_exists(client: Minio, bucket_name: str):
@@ -118,7 +144,6 @@ def build_spark_debug() -> SparkSession:
         .config("spark.hadoop.fs.s3a.endpoint", config.AWS_ENDPOINT_URL)
         .config("spark.hadoop.fs.s3a.comitter.name", "directory")
         .config("spark.hadoop.fs.s3a.comitter.magic.enabled", "false")
-        
         # MongoDB
         .config("spark.mongodb.connection.uri", config.MONGO_URI)
     )

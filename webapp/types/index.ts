@@ -6,6 +6,8 @@ export interface DataItem {
   cumulative_score: number;
   event_count: number;
   avg_score: number;
+  first_event_timestamp: number;
+  last_event_timestamp: number;
   updated_at: number;
 }
 
@@ -51,11 +53,17 @@ export const columns: TableColumn[] = [
     format: (value: number) => value.toFixed(2),
   },
   {
+    id: "lag_seconds",
+    label: "Lag (seconds)",
+    minWidth: 170,
+    format: (value: number) => value.toFixed(2),
+  },
+  {
     id: "updated_at",
     label: "Updated At",
     minWidth: 170,
     format: (value: number) => {
-      return new Date(value * 1000).toLocaleDateString("en-US", {
+      return new Date(value).toLocaleDateString("en-US", {
         day: "2-digit",
         month: "short",
         year: "numeric",

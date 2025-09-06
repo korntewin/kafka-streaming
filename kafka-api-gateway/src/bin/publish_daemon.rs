@@ -107,7 +107,7 @@ async fn main() -> anyhow::Result<()> {
                     }
                 }
 
-                let id = deterministic_uuid(&mut rng).to_string();
+                let id = Uuid::new_v4().to_string();
                 let uniform = Uniform::new(0.0f32, 1.0f32);
                 let score: f32 = uniform.sample(&mut rng);
                 let event = json!({
@@ -147,14 +147,12 @@ async fn main() -> anyhow::Result<()> {
         }));
     }
 
-    // If running indefinitely, wait for Ctrl-C. If finite, wait for tasks to finish.
     if args.messages.is_none() {
         tokio::select! {
             _ = tokio::signal::ctrl_c() => { info!("Ctrl-C received, shutting down (tasks will stop after current message)"); }
         }
     }
 
-    // For finite mode or after Ctrl-C, wait for all tasks (they may still run some iterations until completion)
     for h in handles {
         let _ = h.await;
     }
