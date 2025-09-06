@@ -1,0 +1,28 @@
+.container {
+  min-height: 100vh;
+  padding: 20px 0;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 40px;
+  padding: 20px 0;
+}
+
+.title {
+  color: #1976d2;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 10px 0;
+  }
+
+  .header {
+    margin-bottom: 20px;
+    padding: 10px 0;
+  }
+}

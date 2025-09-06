@@ -93,3 +93,35 @@ def ensure_mongo_collection(client: MongoClient[Any], db_name: str, collection_n
     # Create the collection if it doesn't exist (this also creates the DB if new)
     if collection_name not in db.list_collection_names():
         db.create_collection(collection_name, capped=False)
+
+
+def build_spark_debug() -> SparkSession:
+    builder = (
+        SparkSession.builder.appName("reviews-stream-processor")
+        # Spark cluster config
+        .config("spark.eventLog.enabled", "false")
+        .config("spark.sql.shuffle.partitions", config.SPARK_SHUFFLE_PARTITIONS)
+        # Delta Lake config
+        .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
+        .config(
+            "spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog"
+        )
+        .config("spark.databricks.delta.properties.defaults.enableChangeDataFeed", "true")
+        # S3 compatible object storage config
+        .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
+        .config("spark.hadoop.fs.s3a.path.style.access", "true")
+        .config("spark.hadoop.fs.s3a.connection.ssl.enabled", "false")
+        .config("spark.hadoop.fs.s3a.access.key", config.AWS_ACCESS_KEY_ID)
+        .config("spark.hadoop.fs.s3a.secret.key", config.AWS_SECRET_ACCESS_KEY)
+        .config("spark.hadoop.fs.s3a.endpoint", config.AWS_ENDPOINT_URL)
+        .config("spark.hadoop.fs.s3a.comitter.name", "directory")
+        .config("spark.hadoop.fs.s3a.comitter.magic.enabled", "false")
+        
+        # MongoDB
+        .config("spark.mongodb.connection.uri", config.MONGO_URI)
+    )
+    spark = configure_spark_with_delta_pip(
+        builder, extra_packages=config.SPARK_PACKAGES
+    ).getOrCreate()
+    spark.sparkContext.setLogLevel(config.SPARK_LOG_LEVEL)
+    return spark

@@ -2,6 +2,11 @@ services:
   # ==== Rust Kafka Gateway ====
   kafka-api-gateway:
     network_mode: host
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
     build:
       context: .
       target: kafka-api-gateway
@@ -14,6 +19,11 @@ services:
 
   publish-daemon:
     network_mode: host
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
     build:
       context: .
       target: publish-daemon
@@ -21,7 +31,7 @@ services:
       - .env
     command: 
       - --rate=10
-      - --concurrency=100
+      - --concurrency=200
       - --seed=42
     depends_on:
       - kafka-api-gateway
@@ -30,6 +40,11 @@ services:
   controller-1:
     image: apache/kafka:4.1.0
     container_name: controller-1
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2GB
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: controller
@@ -50,6 +65,11 @@ services:
   controller-2:
     image: apache/kafka:4.1.0
     container_name: controller-2
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2GB
     environment:
       KAFKA_NODE_ID: 2
       KAFKA_PROCESS_ROLES: controller
@@ -70,6 +90,11 @@ services:
   controller-3:
     image: apache/kafka:4.1.0
     container_name: controller-3
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2GB
     environment:
       KAFKA_NODE_ID: 3
       KAFKA_PROCESS_ROLES: controller
@@ -90,6 +115,11 @@ services:
   broker-1:
     image: apache/kafka:4.1.0
     container_name: broker-1
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2GB
     ports:
       - 29092:9092
     environment:
@@ -115,6 +145,11 @@ services:
   broker-2:
     image: apache/kafka:4.1.0
     container_name: broker-2
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2GB
     ports:
       - 39092:9092
     environment:
@@ -140,6 +175,11 @@ services:
   broker-3:
     image: apache/kafka:4.1.0
     container_name: broker-3
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2GB
     ports:
       - 49092:9092
     environment:
@@ -174,6 +214,11 @@ services:
 
   # ==== Spark Cluster with Object Storage ====
   spark-stream:
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2GB
     build:
       context: .
       target: python-app
@@ -194,6 +239,11 @@ services:
       - mongodb
 
   spark-driver:
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4GB
     image: apache/spark:4.0.0
     hostname: driver
     command: [
@@ -209,6 +259,11 @@ services:
 
   spark-worker:
     image: apache/spark:4.0.0
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2GB
     command: [
       "/opt/spark/bin/spark-class",
       "org.apache.spark.deploy.worker.Worker",
@@ -222,6 +277,11 @@ services:
       - spark-driver
 
   minio:
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2GB
     image: minio/minio:RELEASE.2025-07-23T15-54-02Z-cpuv1
     ports:
       - 9999:9000
@@ -241,6 +301,11 @@ services:
 
   # ==== WebApp to view aggregated score ====
   mongodb:
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2GB
     image: mongo:8.0.13-noble
     ports:
       - 27017:27017
@@ -249,3 +314,14 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: example
     volumes:
       - ./data/mongodb:/data/db
+
+  webapp:
+    build:
+      context: .
+      target: webapp
+    env_file:
+      - .env
+    ports:
+      - 3000:3000
+    depends_on:
+      - mongodb
