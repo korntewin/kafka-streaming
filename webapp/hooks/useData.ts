@@ -16,7 +16,7 @@ export const useData = ({ page = 1, limit = 10 }: UseDataParams = {}) => {
       }
       return response.json();
     },
-    refetchInterval: 5_000,
+    refetchInterval: 1_000,
   });
 };
 
@@ -41,6 +41,6 @@ export const useInfiniteData = ({ limit = 25 }: UseInfiniteDataParams = {}) => {
       return page < pages ? page + 1 : undefined;
     },
     initialPageParam: 1,
-    refetchInterval: 5_000,
+    refetchInterval: 1_000,
   });
 };

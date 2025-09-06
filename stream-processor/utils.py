@@ -72,6 +72,8 @@ def ensure_table(
         .location(str(path))
         .clusterBy(*clustering_cols)
         .property("delta.enableChangeDataFeed", "true" if enable_cdf else "false")
+        .property("delta.autoOptimize.optimizeWrite", "true")
+        .property("delta.autoOptimize.autoCompact", "true")
         .execute()
     )
 

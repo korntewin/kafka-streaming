@@ -214,11 +214,6 @@ services:
 
   # ==== Spark Cluster with Object Storage ====
   spark-stream:
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 2GB
     build:
       context: .
       target: python-app
