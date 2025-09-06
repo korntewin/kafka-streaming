@@ -48,7 +48,9 @@ def start_gold_stream(spark: SparkSession):
         .option("readChangeFeed", "true")
         .option("startingVersion", "0")
         .load(str(config.SILVER_PATH))
-        .filter("_change_type != 'update_preimage'")
+        # Ignore updates and deletes since they are duplicated events from silver stream
+        # (the merge keys are group_id, id)
+        .filter(~F.col("_change_type").isin("update_postimage", "update_preimage", "delete"))
         .drop("_commit_version", "_commit_timestamp", "_change_type")
     )
 
