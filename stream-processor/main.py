@@ -2,7 +2,7 @@ from delta import *  # type: ignore
 
 import config
 from bootstrap import bootstrap
-from processing import silver, gold
+from processing import silver, gold, tomongo
 
 
 def main():  # noqa: D401
@@ -13,9 +13,10 @@ def main():  # noqa: D401
 
     silver_q = silver.start_silver_stream(spark)
     gold_q = gold.start_gold_stream(spark)
+    mongo_q = tomongo.start_to_mongo_stream(spark)
 
     # Keep references to avoid GC (pyspark best practice)
-    _ = (silver_q, gold_q)
+    _ = (silver_q, gold_q, mongo_q)
 
     print("Streams started. Awaiting termination (Ctrl+C to stop)...")
     spark.streams.awaitAnyTermination()

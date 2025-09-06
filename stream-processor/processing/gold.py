@@ -37,9 +37,6 @@ def upsert_gold(batch_df: DataFrame, batch_id: int):
         .select("group_id", "cumulative_score", "event_count", "avg_score", "updated_at")
     )
 
-    temp_view = "gold_upserts"
-    merged.createOrReplaceTempView(temp_view)
-
     gold_tbl.alias("t").merge(
         merged.alias("s"), "t.group_id = s.group_id"
     ).whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()

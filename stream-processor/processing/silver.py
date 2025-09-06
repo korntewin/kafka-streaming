@@ -1,6 +1,7 @@
 import os
 
 from pyspark.sql import SparkSession, functions as F, DataFrame
+from pyspark.sql.window import Window
 from delta import *  # type: ignore
 
 import config
@@ -9,11 +10,19 @@ import config
 def merge_to_silver(batch_df: DataFrame, batch_id: int):
     spark = batch_df.sparkSession
 
+    # Keep only the latest record per (group_id, id) based on event_timestamp
+    window = Window.partitionBy("group_id", "id").orderBy(F.col("event_timestamp").desc())
+    latest_per_key = (
+        batch_df.withColumn("rn", F.row_number().over(window))
+        .filter(F.col("rn") == 1)
+        .drop("rn")
+    )
+
     delta_tbl = DeltaTable.forPath(spark, str(config.SILVER_PATH))
     (
         delta_tbl.alias("t")
         .merge(
-            batch_df.alias("s"),
+            latest_per_key.alias("s"),
             "t.group_id = s.group_id AND t.id = s.id",
         )
         .whenMatchedUpdateAll()

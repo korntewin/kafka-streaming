@@ -20,8 +20,8 @@ services:
     env_file:
       - .env
     command: 
-      - --rate=1
-      - --concurrency=10
+      - --rate=10
+      - --concurrency=100
       - --seed=42
     depends_on:
       - kafka-api-gateway
@@ -159,6 +159,8 @@ services:
         condition: service_healthy
       controller-3:
         condition: service_healthy
+    volumes:
+      - ./data/kafka/broker-3:/tmp/kafka-logs
 
   kafka-ui:
     container_name: kafka-ui
@@ -187,8 +189,9 @@ services:
       - broker-2
       - broker-3
       - minio
-    volumes:
-      - ./data/spark-events:/opt/spark-events
+      - spark-driver
+      - spark-worker
+      - mongodb
 
   spark-driver:
     image: apache/spark:4.0.0
@@ -235,3 +238,14 @@ services:
       timeout: 10s
       retries: 5
       start_period: 10s
+
+  # ==== WebApp to view aggregated score ====
+  mongodb:
+    image: mongo:8.0.13-noble
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes:
+      - ./data/mongodb:/data/db

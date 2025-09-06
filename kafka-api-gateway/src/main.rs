@@ -54,7 +54,7 @@ async fn main() -> std::io::Result<()> {
         let s = state.clone();
         web::App::new()
             .state(s)
-            .route("/health", web::get().to(async ||  "OK" ))
+            .route("/health", web::get().to(async || "OK"))
             .route("/publish", web::post().to(publish))
     })
     .bind(&bind_addr)?

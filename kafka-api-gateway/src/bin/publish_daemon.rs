@@ -1,5 +1,5 @@
-use std::time::Duration;
 use std::time;
+use std::time::Duration;
 
 use clap::Parser;
 use dotenvy::dotenv;
@@ -7,9 +7,9 @@ use log::{error, info};
 use rand::distributions::{Distribution, Uniform};
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
+use reqwest::ClientBuilder;
 use serde_json::json;
 use uuid::Uuid;
-use reqwest::ClientBuilder;
 
 #[derive(Parser, Debug)]
 #[command(
