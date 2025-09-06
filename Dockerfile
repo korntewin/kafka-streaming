@@ -45,11 +45,37 @@ COPY pyproject.toml uv.lock ./
 COPY stream-processor/pyproject.toml stream-processor/pyproject.toml
 RUN uv sync --package stream-processor
 
+# Cache Spark packages
+RUN uv run --package stream-processor python -c \
+    "from pyspark.sql import SparkSession; \
+    spark = SparkSession.builder.appName('test').config('spark.jars.packages', 'org.apache.spark:spark-hadoop-cloud_2.13:4.0.0,org.apache.spark:spark-sql-kafka-0-10_2.13:4.0.0,org.mongodb.spark:mongo-spark-connector_2.13:10.5.0').getOrCreate().stop();"
+
 ENV JAVA_HOME=/usr
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
-# RUN useradd -u 10001 -r -m -d /home/app -s /usr/sbin/nologin appuser
-# USER appuser
 COPY . .
-# RUN uv run --package stream-processor pyspark --packages org.apache.spark:spark-hadoop-cloud_2.13:4.0.0
 ENTRYPOINT ["uv", "run", "--package", "stream-processor", "python3", "stream-processor/main.py"]
+
+# === TypeScript Webapp ===
+FROM node:24-bookworm AS webapp-builder
+WORKDIR /app
+COPY package.json ./
+COPY webapp/package.json webapp/package.json
+RUN npm install --workspace=webapp
+
+COPY webapp/ webapp/
+RUN npm run build --workspace=webapp
+
+FROM node:24-alpine AS webapp
+
+WORKDIR /app
+
+# Copy the standalone build output
+COPY --from=webapp-builder /app/webapp/.next/standalone ./
+COPY --from=webapp-builder /app/webapp/.next/static ./webapp/.next/static
+COPY --from=webapp-builder /app/webapp/public ./webapp/public
+
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+CMD ["node", "webapp/server.js"]

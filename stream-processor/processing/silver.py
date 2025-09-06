@@ -37,7 +37,7 @@ def start_silver_stream(spark: SparkSession):
         spark.readStream.format("kafka")
         .option("kafka.bootstrap.servers", config.KAFKA_BOOTSTRAP)
         .option("subscribe", config.KAFKA_TOPIC)
-        .option("startingOffsets", os.getenv("KAFKA_STARTING_OFFSETS", "latest"))
+        .option("startingOffsets", os.getenv("KAFKA_STARTING_OFFSETS", "earliest"))
         .load()
     )
 

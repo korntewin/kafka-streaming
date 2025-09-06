@@ -1,0 +1,17 @@
+{
+  "name": "kafka-streaming-v2",
+  "private": true,
+  "version": "0.0.0",
+  "workspaces": [
+    "webapp"
+  ],
+  "scripts": {
+    "webapp:dev": "npm run dev -w webapp",
+    "webapp:build": "npm run build -w webapp",
+    "webapp:start": "npm run start -w webapp",
+    "webapp:test": "npm test -w webapp",
+    "webapp:format": "npm run format -w webapp",
+    "webapp:lint": "npm run lint -w webapp"
+  }
+}
+

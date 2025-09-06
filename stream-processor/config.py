@@ -19,7 +19,7 @@ GOLD_CKPT = "s3a://kafka/_checkpoint_gold/" + KAFKA_TOPIC
 MONGO_CKPT = "s3a://kafka/_checkpoint_mongo/" + KAFKA_TOPIC
 
 # Micro-batch trigger
-TRIGGER_INTERVAL = os.getenv("TRIGGER_INTERVAL", "2 seconds")
+TRIGGER_INTERVAL = os.getenv("TRIGGER_INTERVAL", "0 seconds")
 
 # Schema of Kafka message value (JSON)
 EVENT_SCHEMA = StructType(
