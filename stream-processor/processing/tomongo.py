@@ -22,7 +22,6 @@ def start_to_mongo_stream(spark: SparkSession) -> None:
         spark.readStream.format("delta")
         .option("readChangeFeed", "true")
         .option("startingVersion", "0")
-        .option("maxOffsetsPerTrigger", str(config.MAX_FILES_PER_TRIGGER))
         .load(str(config.GOLD_PATH))
         .filter("_change_type != 'update_preimage'")
         .drop("_commit_version", "_commit_timestamp", "_change_type")

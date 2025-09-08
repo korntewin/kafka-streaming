@@ -94,6 +94,7 @@ def ensure_table(
         table_builder.property("delta.enableChangeDataFeed", "true" if enable_cdf else "false")
         .property("delta.autoOptimize.optimizeWrite", "true")
         .property("delta.autoOptimize.autoCompact", "true")
+        .property("delta.deletedFileRetentionDuration", "1 hours")
     )
 
     # Execute table creation
@@ -102,6 +103,33 @@ def ensure_table(
     # Add Z-ORDER optimization if specified (must be done after table creation)
     if zorder_cols:
         spark.sql(f"OPTIMIZE {name} ZORDER BY ({', '.join(zorder_cols)})")  # type: ignore
+
+
+def optimize_table(spark: SparkSession, name: str, zorder_cols: list[str]) -> None:
+    """Optimize Delta table with Z-ORDER by specified columns.
+
+    Args:
+        spark: SparkSession instance
+        name: Table name
+        zorder_cols: Columns to Z-ORDER by
+    """
+    if not zorder_cols:
+        spark.sql(f"OPTIMIZE {name}")  # type: ignore
+        return
+
+    # Perform the optimization with Z-ORDER
+    spark.sql(f"OPTIMIZE {name} ZORDER BY ({', '.join(zorder_cols)})")  # type: ignore
+
+
+def vacuum_table(spark: SparkSession, name: str, path: str, retention_hours: int = 1) -> None:
+    """Vacuum Delta table to clean up old files.
+
+    Args:
+        spark: SparkSession instance
+        path: Path to the Delta table
+        retention_hours: Retention period in hours
+    """
+    DeltaTable.forPath(spark, path).vacuum(retention_hours)
 
 
 def ensure_bucket_exists(client: Minio, bucket_name: str):

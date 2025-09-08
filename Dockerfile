@@ -79,3 +79,17 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 CMD ["node", "webapp/server.js"]
+
+# === Spark history server
+FROM apache/spark:4.0.0 AS history-server
+
+WORKDIR /app
+
+RUN mkdir -p history-jars && cd history-jars \
+    && curl -LO https://downloads.apache.org/hadoop/common/hadoop-3.4.1/hadoop-3.4.1.tar.gz \
+    && tar -xzf hadoop-3.4.1.tar.gz hadoop-3.4.1/share/hadoop/tools/lib/ \
+    && mkdir -p /opt/spark/jars/ \
+    && cp hadoop-3.4.1/share/hadoop/tools/lib/hadoop-aws-3.4.1.jar /opt/spark/jars/ \
+    && cp hadoop-3.4.1/share/hadoop/tools/lib/bundle-*.jar /opt/spark/jars/
+
+ENTRYPOINT /opt/spark/bin/spark-class org.apache.spark.deploy.history.HistoryServer

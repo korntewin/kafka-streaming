@@ -30,7 +30,7 @@ services:
     env_file:
       - .env
     command: 
-      - --rate=10
+      - --rate=20
       - --concurrency=200
       - --seed=42
     depends_on:
@@ -233,6 +233,25 @@ services:
       - spark-worker
       - mongodb
 
+  spark-debug:
+    build:
+      context: .
+      target: python-app
+    environment:
+      - KAFKA_TOPIC=reviews
+    env_file:
+      - .env
+    ports:
+      - 4041:4040
+    entrypoint: sleep infinity
+    depends_on:
+      - broker-1
+      - broker-2
+      - broker-3
+      - minio
+      - spark-driver
+      - spark-worker
+
   spark-driver:
     deploy:
       resources:
@@ -270,6 +289,18 @@ services:
       - SPARK_WORKER_MEMORY=2g
     depends_on:
       - spark-driver
+
+  spark-history-server:
+    build:
+      context: .
+      target: history-server
+    environment:
+      - SPARK_DAEMON_CLASSPATH=/opt/spark/jars/*
+      - SPARK_HISTORY_OPTS=-Dspark.history.fs.logDirectory=s3a://spark-events -Dspark.hadoop.fs.s3a.endpoint=http://minio:9000 -Dspark.hadoop.fs.s3a.access.key=minioadmin -Dspark.hadoop.fs.s3a.secret.key=minioadmin123 -Dspark.hadoop.fs.s3a.path.style.access=true -Dspark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem -Dspark.hadoop.fs.s3a.connection.ssl.enabled=false
+    ports:
+      - 18080:18080
+    depends_on:
+      - minio
 
   minio:
     deploy:

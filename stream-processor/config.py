@@ -13,7 +13,7 @@ KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "reviews")
 
 SILVER_PATH = "s3a://kafka/silver/" + KAFKA_TOPIC
 GOLD_PATH = "s3a://kafka/gold/" + KAFKA_TOPIC
-SILVER_CKPT = "s3a://kafka/_checkpoint_silver/" + KAFKA_TOPIC + "_v2"
+SILVER_CKPT = "s3a://kafka/_checkpoint_silver/" + KAFKA_TOPIC + "_v3"
 GOLD_CKPT = "s3a://kafka/_checkpoint_gold/" + KAFKA_TOPIC
 MONGO_CKPT = "s3a://kafka/_checkpoint_mongo/" + KAFKA_TOPIC
 

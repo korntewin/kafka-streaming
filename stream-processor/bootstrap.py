@@ -10,6 +10,8 @@ from utils import (
     ensure_mongo_collection,
     ensure_table,
     get_bucket_name,
+    optimize_table,
+    vacuum_table,
 )
 
 
@@ -41,8 +43,7 @@ def bootstrap() -> SparkSession:
         spark,
         config.SILVER_PATH,
         name="silver_reviews",
-        partition_cols=["minute_timestamp"],
-        zorder_cols=["id"],
+        clustering_cols=["minute_timestamp"],
         schema=config.RAW_SCHEMA,
     )
 
@@ -50,8 +51,14 @@ def bootstrap() -> SparkSession:
         spark,
         config.GOLD_PATH,
         name="gold_reviews",
-        clustering_cols=["group_id"],  # using group only for aggregation
+        clustering_cols=["group_id"],
         schema=config.AGGREGATION_SCHEMA,
     )
+
+    # Optimize tables if exist
+    optimize_table(spark, "silver_reviews", [])
+    optimize_table(spark, "gold_reviews", [])
+    vacuum_table(spark, "silver_reviews", config.SILVER_PATH)
+    vacuum_table(spark, "gold_reviews", config.GOLD_PATH)
 
     return spark

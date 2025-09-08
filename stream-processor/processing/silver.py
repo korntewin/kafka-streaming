@@ -15,6 +15,16 @@ def merge_to_silver(batch_df: DataFrame, batch_id: int):
     latest_per_key = (
         batch_df.withColumn("rn", F.row_number().over(window)).filter(F.col("rn") == 1).drop("rn")
     )
+        
+    # Prune partition to only the partitions we are inserting
+    # this help Liquid Clustering to skip unnecessary files
+    mins = [r[0] for r in latest_per_key.select("minute_timestamp").distinct().collect()]
+    part_list = ",".join(map(str, mins))
+    cond = (
+        f"t.minute_timestamp IN ({part_list}) "
+        f"AND t.minute_timestamp = s.minute_timestamp "
+        f"AND t.id = s.id"
+    )
 
     delta_tbl = DeltaTable.forPath(spark, str(config.SILVER_PATH))
 
@@ -22,7 +32,7 @@ def merge_to_silver(batch_df: DataFrame, batch_id: int):
         delta_tbl.alias("t")
         .merge(
             latest_per_key.alias("s"),
-            "t.id = s.id AND t.minute_timestamp = s.minute_timestamp",
+            cond,
         )
         .whenNotMatchedInsertAll()
         .execute()
