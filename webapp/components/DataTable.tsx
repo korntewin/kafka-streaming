@@ -44,6 +44,8 @@ export default function DataTable({ columns }: DataTableProps) {
     isFetchingNextPage,
   } = useInfiniteData({ limit: 25 });
 
+  const [lagSeconds, setLagSeconds] = useState(0);
+
   const flattenedData = infiniteData?.pages.flatMap((page) => page.data) || [];
   const totalCount = infiniteData?.pages[0]?.pagination.total || 0;
 
@@ -92,27 +94,15 @@ export default function DataTable({ columns }: DataTableProps) {
 
   useEffect(() => {
     setCurrentData((prev) => {
-      const prevDataMap = new Map<
-        string,
-        { item: DataItem; updated_at: number }
-      >();
-      prev.forEach((item) => {
-        prevDataMap.set(item._id, { item, updated_at: item.updated_at });
-      });
-
-      return rawData.map((newItem) => {
-        const prevData = prevDataMap.get(newItem._id);
-
-        if (!prevData) {
-          return { ...newItem, lag_seconds: 0 };
-        } else if (prevData.updated_at !== newItem.updated_at) {
-          const lagSeconds =
-            Math.abs(newItem.updated_at - prevData.updated_at) / 1000;
-          return { ...newItem, lag_seconds: lagSeconds };
-        } else {
-          return prevData.item;
+      for (let i = 0; i < rawData.length; i++) {
+        const newData = rawData[i];
+        const prevData = prev[i];
+        if (prevData && prevData.updated_at !== newData.updated_at) {
+          setLagSeconds(Math.abs(newData.updated_at - prevData.updated_at) / 1000);
+          break;
         }
-      });
+      }
+      return rawData;
     });
   }, [rawData]);
 
@@ -140,21 +130,26 @@ export default function DataTable({ columns }: DataTableProps) {
   return (
     <Paper className={styles.tableContainer}>
       {/* Mode Toggle */}
-      <Box sx={{ p: 2, borderBottom: 1, borderColor: "divider" }}>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={isLazyMode}
-              onChange={handleModeToggle}
-              color="primary"
-            />
-          }
-          label={`${isLazyMode ? "Lazy Loading" : "Pagination"} Mode`}
-        />
-        <Typography variant="caption" sx={{ ml: 2 }}>
-          {isLazyMode
-            ? `Loaded ${currentData.length} of ${currentTotal} items`
-            : `Page ${page + 1} of ${Math.ceil(currentTotal / rowsPerPage)}`}
+      <Box sx={{ p: 2, borderBottom: 1, borderColor: "divider", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Box>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={isLazyMode}
+                onChange={handleModeToggle}
+                color="primary"
+              />
+            }
+            label={`${isLazyMode ? "Lazy Loading" : "Pagination"} Mode`}
+          />
+          <Typography variant="caption" sx={{ ml: 2 }}>
+            {isLazyMode
+              ? `Loaded ${currentData.length} of ${currentTotal} items`
+              : `Page ${page + 1} of ${Math.ceil(currentTotal / rowsPerPage)}`}
+          </Typography>
+        </Box>
+        <Typography variant="caption">
+          Data Lag: {lagSeconds} seconds
         </Typography>
       </Box>
 

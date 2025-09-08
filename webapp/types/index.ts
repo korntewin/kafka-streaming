@@ -54,12 +54,6 @@ export const columns: TableColumn[] = [
     format: (value: number) => value.toFixed(2),
   },
   {
-    id: "lag_seconds",
-    label: "Lag (seconds)",
-    minWidth: 170,
-    format: (value: number) => value.toFixed(2),
-  },
-  {
     id: "updated_at",
     label: "Updated At",
     minWidth: 170,
