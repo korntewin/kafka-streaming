@@ -87,13 +87,30 @@ export default function DataTable({ columns }: DataTableProps) {
   const currentError = isLazyMode ? infiniteError : error;
   const currentIsError = isLazyMode ? isInfiniteError : isError;
   const rawData = isLazyMode ? flattenedData : data?.data || [];
+  const [currentData, setCurrentData] = useState<DataItem[]>([]);
   const currentTotal = isLazyMode ? totalCount : data?.pagination?.total || 0;
 
-  const currentData = rawData.map((item) => {
-    const lag_seconds =
-      (item.updated_at - item.first_event_timestamp) / 1000;
-    return { ...item, lag_seconds }; 
-  });
+  useEffect(() => {
+    setCurrentData((prev) => {
+      const prevDataMap = new Map<string, { item: DataItem; updated_at: number }>();
+      prev.forEach(item => {
+        prevDataMap.set(item._id, { item, updated_at: item.updated_at });
+      });
+
+      return rawData.map(newItem => {
+        const prevData = prevDataMap.get(newItem._id);
+        
+        if (!prevData) {
+          return { ...newItem, lag_seconds: 0 };
+        } else if (prevData.updated_at !== newItem.updated_at) {
+          const lagSeconds = Math.abs(newItem.updated_at - prevData.updated_at) / 1000;
+          return { ...newItem, lag_seconds: lagSeconds };
+        } else {
+          return prevData.item;
+        }
+      });
+    });
+  }, [rawData]);
 
   if (currentLoading && (!isLazyMode || flattenedData.length === 0)) {
     return (

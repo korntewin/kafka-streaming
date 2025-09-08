@@ -58,7 +58,7 @@ def bootstrap() -> SparkSession:
     # Optimize tables if exist
     optimize_table(spark, "silver_reviews", [])
     optimize_table(spark, "gold_reviews", [])
-    vacuum_table(spark, "silver_reviews", config.SILVER_PATH)
-    vacuum_table(spark, "gold_reviews", config.GOLD_PATH)
+    vacuum_table(spark, "silver_reviews", config.SILVER_PATH, retention_hours=168)
+    vacuum_table(spark, "gold_reviews", config.GOLD_PATH, retention_hours=168)
 
     return spark

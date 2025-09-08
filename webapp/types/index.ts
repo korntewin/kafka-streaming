@@ -9,6 +9,7 @@ export interface DataItem {
   first_event_timestamp: number;
   last_event_timestamp: number;
   updated_at: number;
+  lag_seconds?: number;
 }
 
 export interface PaginationInfo {
