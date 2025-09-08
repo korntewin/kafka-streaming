@@ -92,18 +92,22 @@ export default function DataTable({ columns }: DataTableProps) {
 
   useEffect(() => {
     setCurrentData((prev) => {
-      const prevDataMap = new Map<string, { item: DataItem; updated_at: number }>();
-      prev.forEach(item => {
+      const prevDataMap = new Map<
+        string,
+        { item: DataItem; updated_at: number }
+      >();
+      prev.forEach((item) => {
         prevDataMap.set(item._id, { item, updated_at: item.updated_at });
       });
 
-      return rawData.map(newItem => {
+      return rawData.map((newItem) => {
         const prevData = prevDataMap.get(newItem._id);
-        
+
         if (!prevData) {
           return { ...newItem, lag_seconds: 0 };
         } else if (prevData.updated_at !== newItem.updated_at) {
-          const lagSeconds = Math.abs(newItem.updated_at - prevData.updated_at) / 1000;
+          const lagSeconds =
+            Math.abs(newItem.updated_at - prevData.updated_at) / 1000;
           return { ...newItem, lag_seconds: lagSeconds };
         } else {
           return prevData.item;

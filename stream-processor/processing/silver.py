@@ -15,7 +15,7 @@ def merge_to_silver(batch_df: DataFrame, batch_id: int):
     latest_per_key = (
         batch_df.withColumn("rn", F.row_number().over(window)).filter(F.col("rn") == 1).drop("rn")
     )
-        
+
     # Prune partition to only the partitions we are inserting
     # this help Liquid Clustering to skip unnecessary files
     mins = [r[0] for r in latest_per_key.select("minute_timestamp").distinct().collect()]
@@ -57,9 +57,7 @@ def start_silver_stream(spark: SparkSession):
         .select("json.*")
         .withColumn("ingest_timestamp", F.unix_timestamp(F.current_timestamp()))
         # Add partition columns
-        .withColumn(
-            "minute_timestamp", (F.col("event_timestamp") / 1000 / 180).cast("long")
-        )
+        .withColumn("minute_timestamp", (F.col("event_timestamp") / 1000 / 180).cast("long"))
     )
 
     return (
