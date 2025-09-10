@@ -61,6 +61,8 @@ def start_silver_stream(spark: SparkSession):
         .withColumn("minute_timestamp", (F.col("event_timestamp") / 1000 / 180).cast("long"))
         .withColumn("timestamp", (F.col("event_timestamp") / 1000).cast("timestamp"))
         .withWatermark("timestamp", "30 seconds")
+        # Deduplication uses RocksDB state store with S3 checkpoint location
+        # State store configuration is set in the Spark session (utils.py)
         .dropDuplicatesWithinWatermark(["id"])
     )
 

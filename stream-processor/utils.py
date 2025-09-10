@@ -37,6 +37,9 @@ def build_spark(instances: int = config.SPARK_WORKER_INSTANCES) -> SparkSession:
         .config("spark.hadoop.fs.s3a.endpoint", config.AWS_ENDPOINT_URL)
         .config("spark.hadoop.fs.s3a.comitter.name", "directory")
         .config("spark.hadoop.fs.s3a.comitter.magic.enabled", "false")
+        # RocksDB State Store configuration
+        .config("spark.sql.streaming.stateStore.providerClass", "org.apache.spark.sql.execution.streaming.state.RocksDBStateStoreProvider")
+        .config("spark.sql.streaming.stateStore.rocksdb.changelogCheckpointing.enabled", "true")
         # MongoDB
         .config("spark.mongodb.connection.uri", config.MONGO_URI)
     )
@@ -172,6 +175,9 @@ def build_spark_debug() -> SparkSession:
         .config("spark.hadoop.fs.s3a.endpoint", config.AWS_ENDPOINT_URL)
         .config("spark.hadoop.fs.s3a.comitter.name", "directory")
         .config("spark.hadoop.fs.s3a.comitter.magic.enabled", "false")
+        # RocksDB State Store configuration
+        .config("spark.sql.streaming.stateStore.providerClass", "org.apache.spark.sql.execution.streaming.state.RocksDBStateStoreProvider")
+        .config("spark.sql.streaming.stateStore.rocksdb.changelogCheckpointing.enabled", "true")
         # MongoDB
         .config("spark.mongodb.connection.uri", config.MONGO_URI)
     )
