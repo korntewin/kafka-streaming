@@ -4,17 +4,18 @@ import config
 from delta import DeltaTable
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
-from pyspark.sql.window import Window
+# from pyspark.sql.window import Window
 
 
 def merge_to_silver(batch_df: DataFrame, batch_id: int):
     spark = batch_df.sparkSession
 
     # Keep only the latest record per (group_id, id) based on event_timestamp
-    window = Window.partitionBy("group_id", "id").orderBy(F.col("event_timestamp").desc())
-    latest_per_key = (
-        batch_df.withColumn("rn", F.row_number().over(window)).filter(F.col("rn") == 1).drop("rn")
-    )
+    # window = Window.partitionBy("group_id", "id").orderBy(F.col("event_timestamp").desc())
+    # latest_per_key = (
+    #     batch_df.withColumn("rn", F.row_number().over(window)).filter(F.col("rn") == 1).drop("rn")
+    # )
+    latest_per_key = batch_df
 
     # Prune partition to only the partitions we are inserting
     # this help Liquid Clustering to skip unnecessary files
@@ -58,6 +59,9 @@ def start_silver_stream(spark: SparkSession):
         .withColumn("ingest_timestamp", F.unix_timestamp(F.current_timestamp()))
         # Add partition columns
         .withColumn("minute_timestamp", (F.col("event_timestamp") / 1000 / 180).cast("long"))
+        .withColumn("timestamp", (F.col("event_timestamp") / 1000).cast("timestamp"))
+        .withWatermark("timestamp", "30 seconds")
+        .dropDuplicatesWithinWatermark(["id"])
     )
 
     return (

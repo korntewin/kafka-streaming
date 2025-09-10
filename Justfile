@@ -1,6 +1,6 @@
 set dotenv-load := true
 
-run-app: run-spark-cluster run-publish-daemon run-kafka-ui run-webapp run-spark-history-server
+run-app: run-publish-daemon run-spark-cluster run-kafka-ui run-webapp run-spark-history-server
 
 run-spark-cluster:
     @docker-compose up -d --build --scale spark-worker=${SPARK_WORKER_INSTANCES} spark-stream
